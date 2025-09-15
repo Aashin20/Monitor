@@ -53,5 +53,14 @@ def register(details: Register):
         session.commit()
         return True, "User registered successfully."
     
-
+def login(reg_no: str, password: str):
+    with Database.get_session() as session:
+        user = session.query(User).filter(User.reg_no == reg_no).first()
+        if not user:
+            return False, "User not found."
+        
+        if bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
+            return True, user
+        else:
+            return False, "Incorrect password."
 
