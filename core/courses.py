@@ -157,3 +157,78 @@ def get_course_info(course_id: int) -> Optional[dict]:
             'total_faculty': len(assigned_faculty)
         }
 
+
+def create_class_schedule(
+    course_code: str,
+    faculty_reg_no: str,
+    classroom_number: str,
+    time_slot_name: str,
+    day_of_week: DayOfWeek,
+    class_type: ClassType,
+    section: Optional[str] = None,
+    notes: Optional[str] = None
+) -> ClassSchedule:
+   
+    schedule_id = None
+    with Database.get_session() as session:
+        course = session.query(Course).filter(Course.course_code == course_code).one_or_none()
+        if not course:
+            raise ValueError(f"Course with code '{course_code}' not found.")
+
+        faculty = session.query(User).filter(User.reg_no == faculty_reg_no).one_or_none()
+        if not faculty:
+            raise ValueError(f"User with registration number '{faculty_reg_no}' not found.")
+        if faculty.role != UserRole.faculty:  
+            raise ValueError(f"User '{faculty.name}' is not a faculty member.")
+
+        assignment_check = session.query(faculty_course_assignment).filter_by(
+            faculty_id=faculty.reg_no, course_id=course.id
+        ).first()
+        if not assignment_check:
+            raise ValueError(
+                f"Faculty '{faculty.name}' is not formally assigned to teach course '{course.course_name}'."
+            )
+
+        classroom = session.query(Classroom).filter(Classroom.class_number == classroom_number).one_or_none()
+        if not classroom:
+            raise ValueError(f"Classroom '{classroom_number}' not found.")
+
+        time_slot = session.query(TimeSlot).filter(TimeSlot.name == time_slot_name).one_or_none()
+        if not time_slot:
+            raise ValueError(f"Time slot '{time_slot_name}' not found.")
+
+        conflict = session.query(ClassSchedule).filter(
+                        ClassSchedule.day_of_week == day_of_week,
+                        ClassSchedule.time_slot_id == time_slot.id
+                    ).filter(
+                        (ClassSchedule.faculty_id == faculty.reg_no) |
+                        (ClassSchedule.classroom_id == classroom.id)
+                    ).first()
+
+
+        if conflict:
+            if conflict.faculty_id == faculty.reg_no:
+                raise ValueError(
+                    f"Conflict: Faculty '{faculty.name}' is already scheduled for another class at this time."
+                )
+            if conflict.classroom_id == classroom.id:
+                raise ValueError(
+                    f"Conflict: Classroom '{classroom.class_number}' is already booked at this time."
+                )
+
+        new_schedule = ClassSchedule(
+            course_id=course.id,
+            faculty_id=faculty.reg_no,  
+            classroom_id=classroom.id,
+            time_slot_id=time_slot.id,
+            day_of_week=day_of_week,
+            class_type=class_type,
+            section=section,
+            notes=notes
+        )
+        session.add(new_schedule)
+        session.flush()
+        session.commit()
+        session.refresh(new_schedule)
+        return new_schedule
+
