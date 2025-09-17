@@ -92,3 +92,51 @@ def create_attendance_session(
     except Exception as e:
         return {"success": False, "message": f"Unexpected error: {str(e)}"}
     
+
+
+def get_attendance_summary():
+    try:
+        with Database.get_session() as session:
+            attendance_session = (
+                session.query(AttendanceSession)
+                .options(joinedload(AttendanceSession.course))
+                .filter_by(is_active=True)
+                .first()
+            )
+
+            if not attendance_session:
+                return {"success": False, "message": "No active attendance session found"}
+
+            course_id = attendance_session.course_id
+            session_id = attendance_session.id
+
+            total_students = (
+                session.query(StudentCourseEnrollment)
+                .filter_by(course_id=course_id)
+                .count()
+            )
+
+            present_records = (
+                session.query(AttendanceRecord)
+                .join(User)
+                .filter(
+                    AttendanceRecord.session_id == session_id,
+                    AttendanceRecord.status == AttendanceStatus.present
+                )
+                .all()
+            )
+
+            present_roll_numbers = [record.student.reg_no for record in present_records]
+
+            return {
+                "session_id": session_id,
+                "course_id": course_id,
+                "present_roll_numbers": present_roll_numbers,
+                "present_count": len(present_roll_numbers),
+                "total_students": total_students
+            }
+
+    except SQLAlchemyError as e:
+        return {"success": False, "message": f"Database error: {str(e)}"}
+    except Exception as e:
+        return {"success": False, "message": f"Unexpected error: {str(e)}"}
