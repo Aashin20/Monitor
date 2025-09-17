@@ -140,3 +140,55 @@ def get_attendance_summary():
         return {"success": False, "message": f"Database error: {str(e)}"}
     except Exception as e:
         return {"success": False, "message": f"Unexpected error: {str(e)}"}
+
+def end_attendance_session(faculty_id: str) -> bool:
+    try:
+        with Database.get_session() as session:
+            faculty = session.query(User).filter_by(reg_no=faculty_id).first()
+            if not faculty or faculty.role != UserRole.faculty:
+                return False
+            
+            attendance_session = session.query(AttendanceSession).filter(
+                and_(
+                    AttendanceSession.faculty_id == faculty_id,
+                    AttendanceSession.is_active
+                )
+            ).first()
+            
+            if not attendance_session:
+                return False
+            
+            enrolled_students = session.query(StudentCourseEnrollment).filter_by(
+                course_id=attendance_session.course_id
+            ).all()
+            
+            recorded_students = session.query(AttendanceRecord.student_id).filter_by(
+                session_id=attendance_session.id
+            ).all()
+            recorded_student_ids = {record[0] for record in recorded_students}
+            
+            for enrollment in enrolled_students:
+                if enrollment.student_id not in recorded_student_ids:
+                    
+                    absent_record = AttendanceRecord(
+                        session_id=attendance_session.id,
+                        student_id=enrollment.student_id,
+                        status=AttendanceStatus.absent,
+                        timestamp=datetime.now()
+                    )
+                    session.add(absent_record)
+                    student = enrollment.student
+                    student_name = student.name
+                    student_email = student.parent_email  
+
+                    send_email(student_name, student_email)
+            attendance_session.end_time = datetime.now()
+            attendance_session.is_active = False
+            
+            session.commit()
+            clear_session_cache()
+            return True
+            
+    except:
+        return False
+
