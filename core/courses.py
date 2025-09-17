@@ -77,4 +77,38 @@ def enroll_students_to_course(course_id: int, student_reg_nos: List[str]) -> boo
         print(f"Error enrolling students: {str(e)}")
         return False
 
+def assign_faculty_to_course(course_id: int, faculty_reg_nos: List[str]) -> bool:
+    """
+    Assign multiple faculty members to a course.
+    """
+    try:
+        with Database.get_session() as session:
+            course = session.query(Course).filter_by(id=course_id).first()
+            if not course:
+                print(f"Error: Course with ID {course_id} not found")
+                return False
 
+            assigned_count = 0
+            for reg_no in faculty_reg_nos:
+                faculty = session.query(User).filter_by(
+                    reg_no=reg_no,
+                    role=UserRole.faculty
+                ).first()
+
+                if not faculty:
+                    print(f"Warning: Faculty with reg_no '{reg_no}' not found")
+                    continue
+
+                if faculty in course.assigned_faculty:
+                    print(f"Warning: Faculty '{reg_no}' already assigned to course '{course.course_code}'")
+                    continue
+
+                course.assigned_faculty.append(faculty)
+                assigned_count += 1
+
+            session.commit()
+            print(f"Successfully assigned {assigned_count} faculty members to course '{course.course_code}'")
+            return True
+    except Exception as e:
+        print(f"Error assigning faculty: {str(e)}")
+        return False
