@@ -29,3 +29,52 @@ def create_course(course_name: str, course_code: str,credits: int,department: st
     except Exception as e:
         print(f"Error creating course: {str(e)}")
         return None
+
+
+def enroll_students_to_course(course_id: int, student_reg_nos: List[str]) -> bool:
+    """
+    Enroll multiple students to a course.
+    """
+    try:
+        with Database.get_session() as session:
+            course = session.query(Course).filter_by(id=course_id).first()
+            if not course:
+                print(f"Error: Course with ID {course_id} not found")
+                return False
+
+            enrolled_count = 0
+            for reg_no in student_reg_nos:
+                student = session.query(User).filter_by(
+                    reg_no=reg_no,
+                    role=UserRole.student
+                ).first()
+
+                if not student:
+                    print(f"Warning: Student with reg_no '{reg_no}' not found")
+                    continue
+
+            
+                existing_enrollment = session.query(StudentCourseEnrollment).filter_by(
+                    student_id=reg_no,
+                    course_id=course_id
+                ).first()
+
+                if existing_enrollment:
+                    print(f"Warning: Student '{reg_no}' already enrolled in course '{course.course_code}'")
+                    continue
+
+                enrollment = StudentCourseEnrollment(
+                    student_id=reg_no,
+                    course_id=course_id
+                )
+                session.add(enrollment)
+                enrolled_count += 1
+
+            session.commit()
+            print(f"Successfully enrolled {enrolled_count} students to course '{course.course_code}'")
+            return True
+    except Exception as e:
+        print(f"Error enrolling students: {str(e)}")
+        return False
+
+
