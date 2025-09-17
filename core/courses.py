@@ -112,3 +112,48 @@ def assign_faculty_to_course(course_id: int, faculty_reg_nos: List[str]) -> bool
     except Exception as e:
         print(f"Error assigning faculty: {str(e)}")
         return False
+
+
+def get_course_info(course_id: int) -> Optional[dict]:
+
+    with Database.get_session() as session:
+        course = (
+            session.query(Course)
+            .options(
+                selectinload(Course.enrollments).joinedload(StudentCourseEnrollment.student),
+                selectinload(Course.assigned_faculty)
+            )
+            .filter_by(id=course_id)
+            .first()
+        )
+
+        if not course:
+            return None
+
+        enrolled_students = [
+            {
+                'reg_no': enrollment.student.reg_no,
+                'name': enrollment.student.name,
+                'enrolled_at': enrollment.enrolled_at
+            }
+            for enrollment in course.enrollments
+        ]
+
+        assigned_faculty = [
+            {
+                'reg_no': faculty.reg_no,
+                'name': faculty.name
+            }
+            for faculty in course.assigned_faculty
+        ]
+
+        return {
+            'course_id': course.id,
+            'course_name': course.course_name,
+            'course_code': course.course_code,
+            'enrolled_students': enrolled_students,
+            'assigned_faculty': assigned_faculty,
+            'total_students': len(enrolled_students),
+            'total_faculty': len(assigned_faculty)
+        }
+
