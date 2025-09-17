@@ -2,9 +2,11 @@ from utils.db import Database
 from pydantic import BaseModel,Base64Bytes
 from models import User,UserRole
 import bcrypt
+from typing import Optional
 import io
 import face_recognition
 from PIL import UnidentifiedImageError
+import base64
 
 class Register(BaseModel):
     reg_no: str
@@ -12,8 +14,8 @@ class Register(BaseModel):
     password: str
     parent_email: str
     role: UserRole
-    pfp: Base64Bytes = None
-    face: Base64Bytes
+    pfp: Optional[Base64Bytes]  = None
+    face: Optional[Base64Bytes]
 
 def register(details: Register):
     with Database.get_session() as session:
@@ -38,15 +40,17 @@ def register(details: Register):
 
     with Database.get_session() as session:
         hashed_password = bcrypt.hashpw(details.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        
+        pfp_bytes = None
+        if details.pfp:
+            pfp_bytes = base64.b64decode(details.pfp) if isinstance(details.pfp, str) else details.pfp
         new_user = User(
             reg_no=details.reg_no,
             name=details.name,
             password_hash=hashed_password,
             parent_email=details.parent_email,
-            role=details.role,
-            pfp=details.pfp,
-            face=user_face_encoding.tolist()
+            role=details.role.value,
+            pfp=pfp_bytes,
+            face=[float(x) for x in user_face_encoding.tolist()]
         )
         
         session.add(new_user)
@@ -60,7 +64,11 @@ def login(reg_no: str, password: str):
             return False, "User not found."
         
         if bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
-            return True, user
+            return True,{
+                "reg_no": user.reg_no,
+                "name": user.name,
+                "role": user.role,
+                "parent_email": user.parent_email
+            }
         else:
             return False, "Incorrect password."
-
