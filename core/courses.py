@@ -1,6 +1,5 @@
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
-from sqlalchemy import or_
 from models import (Course, User, StudentCourseEnrollment, UserRole, Classroom, TimeSlot,
                     ClassSchedule, DayOfWeek, ClassType,faculty_course_assignment)
 from typing import List, Optional
@@ -169,7 +168,6 @@ def create_class_schedule(
     notes: Optional[str] = None
 ) -> ClassSchedule:
    
-    schedule_id = None
     with Database.get_session() as session:
         course = session.query(Course).filter(Course.course_code == course_code).one_or_none()
         if not course:
@@ -231,4 +229,3 @@ def create_class_schedule(
         session.commit()
         session.refresh(new_schedule)
         return new_schedule
-
