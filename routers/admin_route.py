@@ -29,3 +29,7 @@ async def enroll_students(course_id: int, student_reg_nos: List[str]):
 @router.post("/course/assign")
 async def assign_faculty(course_id: int, faculty_reg_nos: List[str]):
     return assign_faculty_to_course(course_id, faculty_reg_nos)
+
+@router.get("/course/{course_id}")
+async def course_info(course_id: int):
+    return get_course_info(course_id)
