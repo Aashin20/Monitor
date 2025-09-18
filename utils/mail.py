@@ -19,7 +19,7 @@ def send_email(student_name: str, recipient_email: str):
     message["To"] = recipient_email
     message["Subject"] = subject
 
-    # Send email
+
     context = ssl.create_default_context()
     with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
         server.login(sender_email, sender_password)
