@@ -21,3 +21,7 @@ class CreateSchedule(BaseModel):
 @router.post("/course/create")
 async def course_create(course_name: str, course_code: str,credits: int,department: str):
     return create_course(course_name, course_code,credits,department)
+
+@router.post("/course/enroll")
+async def enroll_students(course_id: int, student_reg_nos: List[str]):
+    return enroll_students_to_course(course_id, student_reg_nos)
