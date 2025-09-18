@@ -49,3 +49,40 @@ def submit_leave_request(student_id: str, start_date: datetime, end_date: dateti
             
     except Exception as e:
         return {"success": False, "message": f"Error submitting leave request: {str(e)}"}
+
+
+def view_leave_requests(faculty_id: str):
+    """
+    View all pending and processed leave requests from faculty side
+    """
+    try:
+        with Database.get_session() as session:
+            faculty = session.query(User).filter_by(reg_no=faculty_id).first()
+            if not faculty:
+                return {"success": False, "message": "Faculty not found"}
+            
+            requests = session.query(LeaveRequest).join(User, LeaveRequest.student_id == User.reg_no).all()
+            
+            requests_data = []
+            for req in requests:
+                requests_data.append({
+                    "id": req.id,
+                    "student_id": req.student_id,
+                    "student_name": req.student.name,
+                    "start_date": req.start_date,
+                    "end_date": req.end_date,
+                    "reason": req.reason,
+                    "status": req.status.value,
+                    "attachment_url": req.attachment_url,
+                    "created_at": req.created_at,
+                    "faculty_remarks": req.faculty_remarks
+                })
+            
+            return {
+                "success": True,
+                "message": "Leave requests retrieved successfully",
+                "requests": requests_data
+            }
+            
+    except Exception as e:
+        return {"success": False, "message": f"Error retrieving leave requests: {str(e)}"}
