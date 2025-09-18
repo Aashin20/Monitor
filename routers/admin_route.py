@@ -46,3 +46,7 @@ async def schedule_class(details: CreateSchedule):
         section=details.section,
         notes=details.notes
     )
+
+@router.post("/classroom/create")
+async def classroom_create(class_number: str):
+    return create_classroom(class_number)   
