@@ -133,3 +133,56 @@ def process_leave_request(request_id: int, faculty_id: str, action: str, remarks
     except Exception as e:
         return {"success": False, "message": f"Error processing leave request: {str(e)}"}
 
+
+def mark_attendance_for_leave(student_id: str, start_date: datetime, end_date: datetime, session: Session):
+    """
+    Mark attendance as present for approved leave days where student was marked absent
+    Only for courses the student is enrolled in and has existing attendance sessions
+    """
+    try:
+        enrolled_courses = session.query(StudentCourseEnrollment.course_id).filter_by(
+            student_id=student_id
+        ).all()
+        course_ids = [course.course_id for course in enrolled_courses]
+        
+        if not course_ids:
+            return {"success": True, "message": "No enrolled courses found"}
+        
+        current_date = start_date.date()
+        end_date_only = end_date.date()
+        dates_to_check = []
+        
+        while current_date <= end_date_only:
+            dates_to_check.append(current_date)
+            current_date += timedelta(days=1)
+        
+        updated_records = 0
+        
+        for date_to_check in dates_to_check:
+            attendance_sessions = session.query(AttendanceSession).filter(
+                and_(
+                    AttendanceSession.course_id.in_(course_ids),
+                    AttendanceSession.start_time >= datetime.combine(date_to_check, datetime.min.time()),
+                    AttendanceSession.start_time < datetime.combine(date_to_check + timedelta(days=1), datetime.min.time())
+                )
+            ).all()
+            
+            for att_session in attendance_sessions:
+                attendance_record = session.query(AttendanceRecord).filter_by(
+                    session_id=att_session.id,
+                    student_id=student_id
+                ).first()
+                
+                if attendance_record and attendance_record.status == AttendanceStatus.absent:
+                    attendance_record.status = AttendanceStatus.present
+                    updated_records += 1
+        
+        session.commit()
+        
+        return {
+            "success": True,
+            "message": f"Updated {updated_records} attendance records to present"
+        }
+        
+    except Exception as e:
+        return {"success": False, "message": f"Error marking attendance: {str(e)}"}
