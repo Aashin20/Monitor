@@ -50,3 +50,7 @@ async def schedule_class(details: CreateSchedule):
 @router.post("/classroom/create")
 async def classroom_create(class_number: str):
     return create_classroom(class_number)   
+
+@router.post("/timeslot/create")
+async def timeslot_create(name: str, start_time: str, end_time: str):
+    return create_time_slot(name, start_time, end_time)
