@@ -86,3 +86,50 @@ def view_leave_requests(faculty_id: str):
             
     except Exception as e:
         return {"success": False, "message": f"Error retrieving leave requests: {str(e)}"}
+
+
+def process_leave_request(request_id: int, faculty_id: str, action: str, remarks: str = None):
+    """
+    Accept or reject leave request from faculty side
+    action should be 'approve' or 'reject'
+    """
+    try:
+        with Database.get_session() as session:
+            faculty = session.query(User).filter_by(reg_no=faculty_id).first()
+            if not faculty:
+                return {"success": False, "message": "Faculty not found"}
+            
+            leave_request = session.query(LeaveRequest).filter_by(id=request_id).first()
+            if not leave_request:
+                return {"success": False, "message": "Leave request not found"}
+            
+            if leave_request.status != LeaveStatus.pending:
+                return {"success": False, "message": "Leave request already processed"}
+            
+            if action.lower() not in ['approve', 'reject']:
+                return {"success": False, "message": "Action must be 'approve' or 'reject'"}
+            
+            if action.lower() == 'approve':
+                leave_request.status = LeaveStatus.approved
+                mark_result = mark_attendance_for_leave(leave_request.student_id, 
+                                                     leave_request.start_date, 
+                                                     leave_request.end_date,
+                                                     session)
+                if not mark_result["success"]:
+                    return mark_result
+            else:
+                leave_request.status = LeaveStatus.rejected
+            
+            leave_request.reviewed_by_faculty_id = faculty_id
+            leave_request.faculty_remarks = remarks
+            
+            session.commit()
+            
+            return {
+                "success": True,
+                "message": f"Leave request {action.lower()}d successfully"
+            }
+            
+    except Exception as e:
+        return {"success": False, "message": f"Error processing leave request: {str(e)}"}
+
