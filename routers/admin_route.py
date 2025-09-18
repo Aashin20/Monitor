@@ -33,3 +33,16 @@ async def assign_faculty(course_id: int, faculty_reg_nos: List[str]):
 @router.get("/course/{course_id}")
 async def course_info(course_id: int):
     return get_course_info(course_id)
+
+@router.post("/course/schedule/create")
+async def schedule_class(details: CreateSchedule):
+    return create_class_schedule(
+        course_code=details.course_code,
+        faculty_reg_no=details.faculty_reg_no,
+        classroom_number=details.classroom_number,
+        time_slot_name=details.time_slot_name,
+        day_of_week=details.day_of_week,
+        class_type=details.class_type,
+        section=details.section,
+        notes=details.notes
+    )
