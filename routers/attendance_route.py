@@ -49,3 +49,7 @@ async def reg_attendance(details: RegisterAttendance):
         student_latitude=details.lat,
         student_longitude=details.lon
     )
+
+@router.get("/session/summary")
+async def get_session_summary():
+    return get_attendance_summary()
