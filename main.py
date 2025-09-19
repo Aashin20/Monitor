@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from utils.db import Database
 import uvicorn
-from routers import user_route
+from routers import user_route,admin_route,attendance_route,dashboard_route,od_route
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -35,6 +35,10 @@ async def health_check():
     return {"status": "ok"}
 
 app.include_router(user_route.router, prefix="/user", tags=["User"])
+app.include_router(admin_route.router, prefix="/admin", tags=["Admin"])
+app.include_router(attendance_route.router, prefix="/attendance", tags=["Attendance"])
+app.include_router(dashboard_route.router, prefix="/dashboard", tags=["Dashboard"])
+app.include_router(od_route.router, prefix="/od", tags=["OD"])
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="debug")
