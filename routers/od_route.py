@@ -152,3 +152,50 @@ async def process_leave_request_endpoint(request_id: int, request: LeaveRequestP
             detail=f"Internal server error: {str(e)}"
         )
 
+
+@router.get("/student/{student_id}", response_model=APIResponse)
+async def get_student_leave_requests(student_id: str):
+    """
+    Get all leave requests for a specific student
+    """
+    try:
+        from utils.db import Database
+        from models import LeaveRequest, User
+        
+        with Database.get_session() as session:
+            student = session.query(User).filter_by(reg_no=student_id).first()
+            if not student:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Student not found"
+                )
+            
+            requests = session.query(LeaveRequest).filter_by(student_id=student_id).all()
+            
+            requests_data = []
+            for req in requests:
+                requests_data.append({
+                    "id": req.id,
+                    "start_date": req.start_date,
+                    "end_date": req.end_date,
+                    "reason": req.reason,
+                    "status": req.status.value,
+                    "attachment_url": req.attachment_url,
+                    "created_at": req.created_at,
+                    "faculty_remarks": req.faculty_remarks,
+                    "reviewed_by": req.reviewed_by_faculty_id
+                })
+        
+        return APIResponse(
+            success=True,
+            message="Leave requests retrieved successfully",
+            data={"requests": requests_data}
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
+        )
