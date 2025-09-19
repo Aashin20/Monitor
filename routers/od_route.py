@@ -199,3 +199,46 @@ async def get_student_leave_requests(student_id: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"
         )
+
+
+@router.get("/pending", response_model=APIResponse)
+async def get_pending_leave_requests():
+    """
+    Get all pending leave requests (for admin/faculty dashboard)
+    """
+    try:
+        from utils.db import Database
+        from models import LeaveRequest, User, LeaveStatus
+        
+        with Database.get_session() as session:
+            pending_requests = session.query(LeaveRequest).join(
+                User, LeaveRequest.student_id == User.reg_no
+            ).filter(LeaveRequest.status == LeaveStatus.pending).all()
+            
+            requests_data = []
+            for req in pending_requests:
+                requests_data.append({
+                    "id": req.id,
+                    "student_id": req.student_id,
+                    "student_name": req.student.name,
+                    "start_date": req.start_date,
+                    "end_date": req.end_date,
+                    "reason": req.reason,
+                    "status": req.status.value,
+                    "attachment_url": req.attachment_url,
+                    "created_at": req.created_at
+                })
+        
+        return APIResponse(
+            success=True,
+            message="Pending leave requests retrieved successfully",
+            data={"requests": requests_data}
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+
