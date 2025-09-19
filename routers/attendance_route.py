@@ -9,10 +9,8 @@ from sqlalchemy import desc
 import csv
 import os
 import tempfile
-from datetime import datetime
 from utils.db import Database
-
-# Import your models and database session
+from fastapi import BackgroundTasks
 from models import (
     AttendanceSession, AttendanceRecord, User, Course, 
     StudentCourseEnrollment, AttendanceStatus
@@ -41,4 +39,13 @@ async def create_session(details: AttendanceSessionCreate):
         lon=details.lon,
         radius_meters=details.radius_meters,
         remarks=details.remarks
+    )
+
+@router.post("/student/register")
+async def reg_attendance(details: RegisterAttendance):
+    return register_attendance(
+        student_id=details.student_id,
+        face_image_bytes=details.face,
+        student_latitude=details.lat,
+        student_longitude=details.lon
     )
