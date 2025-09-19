@@ -53,3 +53,7 @@ async def reg_attendance(details: RegisterAttendance):
 @router.get("/session/summary")
 async def get_session_summary():
     return get_attendance_summary()
+
+@router.post("/session/end/{faculty_id}")
+async def end_session(faculty_id: str):
+    return end_attendance_session(faculty_id)
