@@ -161,3 +161,10 @@ async def export_latest_attendance_csv(background_tasks: BackgroundTasks):
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating CSV: {str(e)}")
+
+
+def cleanup_temp_file(file_path: str):
+    try:
+        os.unlink(file_path)
+    except OSError:
+        pass
