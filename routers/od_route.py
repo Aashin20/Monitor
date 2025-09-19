@@ -55,3 +55,37 @@ class APIResponse(BaseModel):
     message: str
     data: Optional[dict] = None
 
+
+@router.post("/submit", response_model=APIResponse)
+async def submit_leave_request_endpoint(request: LeaveRequestCreate):
+    """
+    Submit a new leave request from student
+    """
+    try:
+        result = submit_leave_request(
+            student_id=request.student_id,
+            start_date=request.start_date,
+            end_date=request.end_date,
+            reason=request.reason,
+            attachment_url=request.attachment_url
+        )
+        
+        if not result["success"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result["message"]
+            )
+        
+        return APIResponse(
+            success=True,
+            message=result["message"],
+            data={"request_id": result.get("request_id")}
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
+        )
