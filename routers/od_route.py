@@ -118,3 +118,37 @@ async def view_leave_requests_endpoint(faculty_id: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"
         )
+
+
+@router.put("/{request_id}/process", response_model=APIResponse)
+async def process_leave_request_endpoint(request_id: int, request: LeaveRequestProcess):
+    """
+    Process (approve/reject) a leave request by faculty
+    """
+    try:
+        result = process_leave_request(
+            request_id=request_id,
+            faculty_id=request.faculty_id,
+            action=request.action,
+            remarks=request.remarks
+        )
+        
+        if not result["success"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result["message"]
+            )
+        
+        return APIResponse(
+            success=True,
+            message=result["message"]
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
+        )
+
